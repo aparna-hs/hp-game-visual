@@ -50,6 +50,38 @@ body,
   pointer-events: none;
   overflow: hidden;
   background: rgba(0, 0, 0, 0.55);
+}
+
+/* A held splash fades in and stays until dismissed... */
+.immersive-in {
+  animation: immersive-in 260ms ease-out both;
+}
+
+/* ...and it captures the pointer, so any click dismisses it while the
+   page beneath stays untouched until the moment is acknowledged */
+.immersive-in,
+.immersive-out {
+  pointer-events: auto;
+  cursor: pointer;
+}
+
+@keyframes immersive-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+/* ...then fades out on dismiss */
+.immersive-out {
+  animation: immersive-out 340ms ease-in both;
+}
+
+@keyframes immersive-out {
+  from { opacity: 1; }
+  to { opacity: 0; }
+}
+
+/* A spell-cast flash is a brief moment timed with the VFX lifetime */
+.immersive-lifecycle {
   animation: immersive-lifecycle 1700ms ease-out both;
 }
 
@@ -77,14 +109,30 @@ body,
   letter-spacing: 0.35em;
   color: #a7f3c9;
   text-shadow: 0 2px 14px #000, 0 0 4px #000;
-  animation: immersive-label-in 1700ms ease-out both;
+  animation: immersive-label-in 600ms ease-out both;
 }
 
 @keyframes immersive-label-in {
   0% { opacity: 0; transform: translateY(12px); }
-  15% { opacity: 1; transform: none; }
-  85% { opacity: 1; }
-  100% { opacity: 0; }
+  20% { opacity: 1; transform: none; }
+  100% { opacity: 1; }
+}
+
+.immersive-hint {
+  position: absolute;
+  right: 28px;
+  bottom: 36px;
+  z-index: 42;
+  font-size: 11px;
+  letter-spacing: 0.3em;
+  color: rgba(167, 243, 201, 0.65);
+  text-shadow: 0 1px 8px #000;
+  animation: immersive-hint-pulse 2.2s ease-in-out infinite;
+}
+
+@keyframes immersive-hint-pulse {
+  0%, 100% { opacity: 0.4; }
+  50% { opacity: 0.95; }
 }
 
 .scene-scanlines {
@@ -301,6 +349,22 @@ body,
 @keyframes ring-out {
   from { transform: translate(-50%, -50%) scale(0.3); opacity: 0.9; }
   to { transform: translate(-50%, -50%) scale(6); opacity: 0; }
+}
+
+/* Summoned object (Accio): flies from afar into your hand */
+.vfx-summon {
+  position: absolute;
+  left: 50%;
+  top: 44%;
+  animation: summon-fly 950ms cubic-bezier(0.2, 0.7, 0.3, 1) both;
+  filter: drop-shadow(0 0 16px rgba(255, 200, 60, 0.75));
+}
+
+@keyframes summon-fly {
+  0% { transform: translate(-50%, -50%) scale(0.1) rotate(-10deg); opacity: 0; }
+  18% { opacity: 1; }
+  72% { opacity: 1; }
+  100% { transform: translate(-50%, 32vh) scale(1.8) rotate(5deg); opacity: 0; }
 }
 
 /* Animated bars (enemy vitality in CombatPanel) */

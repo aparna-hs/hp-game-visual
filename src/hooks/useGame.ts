@@ -277,6 +277,15 @@ Type HINT if stuck (WARNING: hints reduce your score by 2 points)`,
         }
       }
 
+      // Successful summon (Accio): the object flies to you
+      if (
+        parsed.type === 'spell' &&
+        parsed.verb === 'accio' &&
+        result.state.inventory.length > prev.inventory.length
+      ) {
+        pushVfx([{ type: 'summon' }]);
+      }
+
       // Diff-driven events + VFX (location, health, challenges, flags, combat)
       const { events: rawEvents, vfx: rawVfx } = diffStates(prev, result.state);
       pushEvents(rawEvents);

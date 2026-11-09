@@ -7,12 +7,17 @@ prefer typing to clicking.
 The text terminal is still the primary interface. Around it:
 
 - **Immersive full-screen moments** — entering a room reveals its pixel art
-  across the whole screen with the room's name, then fades. Spell casts flash
-  full-screen in the spell's color (light = white, offense = red, defense =
-  blue, healing = green, utility = gold) with a particle burst over the art.
-  Damage pulses red, healing shimmers green, challenge completions burst gold.
-  The Dementor encounter gets its own close-up moment. Nothing blocks play:
-  every layer is click-through and the terminal keeps focus.
+  across the whole screen with the room's name. Moments hold until you
+  acknowledge them (Esc, any key, or a click — with an "ESC TO CONTINUE"
+  hint and a 10s safety fallback), so you can actually take the art in.
+  Spell casts flash full-screen in the spell's color (light = white,
+  offense = red, defense = blue, healing = green, utility = gold) with a
+  particle burst over the art; these brief flashes never block play.
+  Damage pulses red, healing shimmers green, challenge completions burst
+  gold, and a successful Accio summons the object flying into the
+  foreground. World-changing actions get dedicated set-piece art: the iron
+  door swinging open, the bridge assembling itself, the Patronus charge.
+  The Dementor encounter gets its own close-up moment.
 - **Fog-of-war map** — the heart of the side panel. Rooms appear only after
   you have actually walked to them. No `?` stubs, no challenge list, no hints,
   nothing spoiler-y. Edges appear only once both endpoints have been visited.
@@ -94,7 +99,8 @@ below (no tabs to dig through).
 ## Scenes
 
 `public/scenes/` holds generated 16-bit pixel art (21 location scenes plus title,
-Dementor encounter, duel, Mirror of Erised, victory and death moments). A unifying
+Dementor encounter, duel, Mirror of Erised, victory, death, and the door /
+bridge / Patronus set-piece moments). A unifying
 CSS treatment (scanlines + vignette + slight palette filter) keeps the art cohesive.
 State variants (Lumos glow in dark rooms, embers on the lake after the Inferi burn,
 the open doorway, the Dementor's cold desaturation) are CSS overlays applied during

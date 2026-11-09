@@ -25,7 +25,14 @@ export interface GameEvent {
   tone: EventTone;
 }
 
-export type VfxType = 'spell' | 'damage' | 'heal' | 'challenge' | 'victory' | 'death';
+export type VfxType =
+  | 'spell'
+  | 'damage'
+  | 'heal'
+  | 'challenge'
+  | 'victory'
+  | 'death'
+  | 'summon';
 
 export interface VfxEvent {
   id: number;

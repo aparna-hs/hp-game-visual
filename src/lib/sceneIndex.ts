@@ -44,6 +44,9 @@ export const LOCATION_SCENES: Record<string, SceneSpec> = {
 
 export const MOMENT_SCENES = {
   title: scene('title', 'Ministry of Magic - Auror Examination', 120),
+  door_open: scene('door_open', 'The Iron Door Swings Open', 45),
+  bridge_built: scene('bridge_built', 'A Bridge Assembles Itself', 210),
+  patronus: scene('patronus', 'Expecto Patronum', 200),
   dementor_encounter: scene('dementor_encounter', 'A Dementor Approaches', 210),
   duel: scene('duel', 'The Duel', 350),
   mirror: scene('mirror', 'The Mirror of Erised', 265),

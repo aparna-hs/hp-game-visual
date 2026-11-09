@@ -1,10 +1,11 @@
 // ImmersiveLayer: full-screen cinematic moments — room reveals, the Dementor
 // encounter, spell casts, damage pulses, healing shimmers and challenge
-// bursts. Nothing persistent: art appears over the whole app for a moment,
-// then fades. Every layer is pointer-events: none, so the terminal keeps
-// focus and typing continues underneath.
+// bursts. Room art HOLDS until you take it in: Escape, any key or a click
+// dismisses it (typing your next command dismisses it on the first keystroke).
+// A generous auto-fallback keeps it from lingering forever. Every layer is
+// pointer-events: none, so the terminal keeps focus and typing continues.
 
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { GameState } from '../engine/types';
 import { VfxEvent } from '../lib/diff';
 import { MOMENT_SCENES, resolveScene, SceneSpec } from '../lib/sceneIndex';
@@ -21,12 +22,13 @@ const SPELL_COLORS: Record<string, string> = {
 };
 
 const SPELL_VFX_MS = 1600;
+const HOLD_FALLBACK_MS = 10000;
+const CLOSE_ANIM_MS = 340;
 
 interface Splash {
   key: number;
   spec: SceneSpec;
   label: string;
-  duration: number;
 }
 
 /** Deterministic pseudo-random burst vectors so particles don't reshuffle on re-render. */
@@ -91,6 +93,29 @@ function renderSpellFx(v: VfxEvent) {
   );
 }
 
+function renderSummon(v: VfxEvent) {
+  return (
+    <div key={v.id} className="vfx-summon">
+      <svg viewBox="0 0 22 34" width="46" height="70" aria-hidden="true">
+        <rect x="9" y="1" width="4" height="4" fill="#8a6d3a" />
+        <rect x="8.5" y="4" width="5" height="4" fill="#9fd8b4" opacity="0.9" />
+        <rect
+          x="5"
+          y="8"
+          width="12"
+          height="24"
+          rx="4.5"
+          fill="#123f26"
+          stroke="#7ef29a"
+          strokeWidth="1.5"
+        />
+        <rect x="7" y="18" width="8" height="12" rx="2.5" fill="#fbbf24" />
+        <rect x="7" y="10" width="2.5" height="7" fill="#d1fae5" opacity="0.75" />
+      </svg>
+    </div>
+  );
+}
+
 function renderEffectFx(v: VfxEvent) {
   switch (v.type) {
     case 'damage':
@@ -104,6 +129,8 @@ function renderEffectFx(v: VfxEvent) {
           <div className="vfx-ring" />
         </div>
       );
+    case 'summon':
+      return renderSummon(v);
     default:
       return null;
   }
@@ -111,21 +138,64 @@ function renderEffectFx(v: VfxEvent) {
 
 export default function ImmersiveLayer({ state, vfx }: { state: GameState; vfx: VfxEvent[] }) {
   const [splash, setSplash] = useState<Splash | null>(null);
+  const [closing, setClosing] = useState(false);
   const [failed, setFailed] = useState<Set<string>>(new Set());
+
   const keyRef = useRef(1);
   const prevLoc = useRef<string | null>(null);
   const prevDementorEngaged = useRef(false);
+  const prevDoorOpen = useRef(false);
+  const prevBridgeBuilt = useRef(false);
+  const prevDementorDefeated = useRef(false);
+  const splashRef = useRef<Splash | null>(null);
+  const closingRef = useRef(false);
+  const closeTimerRef = useRef<number | null>(null);
 
-  // Room-entry splash (also fires once when the examination begins)
+  const openSplash = useCallback((spec: SceneSpec, label: string) => {
+    if (closeTimerRef.current !== null) {
+      window.clearTimeout(closeTimerRef.current);
+      closeTimerRef.current = null;
+    }
+    closingRef.current = false;
+    setClosing(false);
+    const next: Splash = { key: keyRef.current++, spec, label };
+    splashRef.current = next;
+    setSplash(next);
+  }, []);
+
+  const dismissSplash = useCallback(() => {
+    if (!splashRef.current || closingRef.current) return;
+    closingRef.current = true;
+    setClosing(true);
+    closeTimerRef.current = window.setTimeout(() => {
+      splashRef.current = null;
+      closingRef.current = false;
+      closeTimerRef.current = null;
+      setSplash(null);
+      setClosing(false);
+    }, CLOSE_ANIM_MS);
+  }, []);
+
+  // Clean up any pending close animation on unmount
+  useEffect(() => {
+    const timer = closeTimerRef;
+    return () => {
+      if (timer.current !== null) window.clearTimeout(timer.current);
+    };
+  }, []);
+
+  // Room-entry splash (also fires once when the examination begins).
+  // Cleared whenever play stops (victory / death / restart).
   useEffect(() => {
     if (state.gamePhase !== 'playing') {
       prevLoc.current = null;
+      if (splashRef.current) dismissSplash();
       return;
     }
     if (prevLoc.current === state.location) return;
     prevLoc.current = state.location;
     const spec = resolveScene(state);
-    setSplash({ key: keyRef.current++, spec, label: spec.label.toUpperCase(), duration: 1700 });
+    openSplash(spec, spec.label.toUpperCase());
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [state.location, state.gamePhase]);
 
@@ -136,23 +206,54 @@ export default function ImmersiveLayer({ state, vfx }: { state: GameState; vfx: 
       !state.challengeState.dementorDefeated &&
       state.gamePhase === 'playing';
     if (engaged && !prevDementorEngaged.current) {
-      setSplash({
-        key: keyRef.current++,
-        spec: MOMENT_SCENES.dementor_encounter,
-        label: 'A DEMENTOR APPROACHES',
-        duration: 2200,
-      });
+      openSplash(MOMENT_SCENES.dementor_encounter, 'A DEMENTOR APPROACHES');
     }
     prevDementorEngaged.current = engaged;
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [state.challengeState.dementorEngaged, state.challengeState.dementorDefeated, state.gamePhase]);
 
-  // Auto-dismiss each splash
+  // Set pieces: dedicated art when world-changing actions land
   useEffect(() => {
-    if (!splash) return;
-    const t = window.setTimeout(() => setSplash(null), splash.duration + 150);
-    return () => window.clearTimeout(t);
-  }, [splash]);
+    const opened = state.challengeState.doorUnlocked && state.gamePhase === 'playing';
+    if (opened && !prevDoorOpen.current) {
+      openSplash(MOMENT_SCENES.door_open, 'THE IRON DOOR SWINGS OPEN');
+    }
+    prevDoorOpen.current = opened;
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [state.challengeState.doorUnlocked, state.gamePhase]);
+
+  useEffect(() => {
+    const built = state.challengeState.levitationBridgeBuilt && state.gamePhase === 'playing';
+    if (built && !prevBridgeBuilt.current) {
+      openSplash(MOMENT_SCENES.bridge_built, 'A BRIDGE ASSEMBLES ITSELF');
+    }
+    prevBridgeBuilt.current = built;
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [state.challengeState.levitationBridgeBuilt, state.gamePhase]);
+
+  useEffect(() => {
+    const defeated = state.challengeState.dementorDefeated && state.gamePhase === 'playing';
+    if (defeated && !prevDementorDefeated.current) {
+      openSplash(MOMENT_SCENES.patronus, 'EXPECTO PATRONUM!');
+    }
+    prevDementorDefeated.current = defeated;
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [state.challengeState.dementorDefeated, state.gamePhase]);
+
+  // A held splash dismisses on Escape / any key / any tap, and after a
+  // generous fallback timer so it can never linger forever.
+  useEffect(() => {
+    if (!splash || closing) return;
+    const onDismiss = () => dismissSplash();
+    const fallback = window.setTimeout(onDismiss, HOLD_FALLBACK_MS);
+    document.addEventListener('keydown', onDismiss);
+    document.addEventListener('pointerdown', onDismiss);
+    return () => {
+      window.clearTimeout(fallback);
+      document.removeEventListener('keydown', onDismiss);
+      document.removeEventListener('pointerdown', onDismiss);
+    };
+  }, [splash, closing, dismissSplash]);
 
   const markFailed = (src: string) => {
     setFailed((prev) => {
@@ -178,22 +279,29 @@ export default function ImmersiveLayer({ state, vfx }: { state: GameState; vfx: 
 
   const spellFx = vfx.filter((v) => v.type === 'spell');
   const effectFx = vfx.filter(
-    (v) => v.type === 'damage' || v.type === 'heal' || v.type === 'challenge'
+    (v) =>
+      v.type === 'damage' ||
+      v.type === 'heal' ||
+      v.type === 'challenge' ||
+      v.type === 'summon'
   );
 
-  // A spell cast gets its own full-screen art moment when no splash is up;
-  // during a splash the effects render on top of the splash art.
+  // A splash holds until dismissed. A spell cast with no splash up gets its
+  // own brief full-screen art flash, timed with the VFX lifetime.
+  const isSplashRoot = splash !== null;
   const rootSpec = splash ? splash.spec : spellFx.length > 0 ? resolveScene(state) : null;
-  const rootDuration = splash ? splash.duration : SPELL_VFX_MS;
   const rootKey = splash ? `splash-${splash.key}` : `spell-${spellFx[0]?.id}`;
+  const rootClass = isSplashRoot
+    ? `immersive-root ${closing ? 'immersive-out' : 'immersive-in'}`
+    : 'immersive-root immersive-lifecycle';
 
   return (
     <>
       {rootSpec && (
         <div
           key={rootKey}
-          className="immersive-root"
-          style={{ animationDuration: `${rootDuration}ms` }}
+          className={rootClass}
+          style={isSplashRoot ? undefined : { animationDuration: `${SPELL_VFX_MS}ms` }}
         >
           {failed.has(rootSpec.src) ? (
             <FallbackScene spec={rootSpec} />
@@ -212,11 +320,8 @@ export default function ImmersiveLayer({ state, vfx }: { state: GameState; vfx: 
           {spellFx.map(renderSpellFx)}
           <div className="scene-scanlines" />
           <div className="scene-vignette" />
-          {splash && (
-            <div className="immersive-label" style={{ animationDuration: `${rootDuration}ms` }}>
-              {splash.label}
-            </div>
-          )}
+          {splash && <div className="immersive-label">{splash.label}</div>}
+          {splash && !closing && <div className="immersive-hint">ESC TO CONTINUE</div>}
         </div>
       )}
       {(effectFx.length > 0 || (!rootSpec && spellFx.length > 0)) && (
