@@ -289,6 +289,9 @@ export default function ImmersiveLayer({ state, vfx }: { state: GameState; vfx: 
   // A splash holds until dismissed. A spell cast with no splash up gets its
   // own brief full-screen art flash, timed with the VFX lifetime.
   const isSplashRoot = splash !== null;
+  // Set-piece art tells its own story (e.g. darkness beyond the open door),
+  // so room-state overlays must not stack on top of it.
+  const setPieceRoot = splash?.spec.setPiece === true;
   const rootSpec = splash ? splash.spec : spellFx.length > 0 ? resolveScene(state) : null;
   const rootKey = splash ? `splash-${splash.key}` : `spell-${spellFx[0]?.id}`;
   const rootClass = isSplashRoot
@@ -313,9 +316,9 @@ export default function ImmersiveLayer({ state, vfx }: { state: GameState; vfx: 
               className={`scene-art ${cold ? 'cold' : ''}`}
             />
           )}
-          {showLumos && <div className="overlay-lumos" />}
-          {showFire && <div className="overlay-fire" />}
-          {showDoor && <div className="overlay-door" />}
+          {showLumos && !setPieceRoot && <div className="overlay-lumos" />}
+          {showFire && !setPieceRoot && <div className="overlay-fire" />}
+          {showDoor && !setPieceRoot && <div className="overlay-door" />}
           {cold && <div className="overlay-cold" />}
           {spellFx.map(renderSpellFx)}
           <div className="scene-scanlines" />

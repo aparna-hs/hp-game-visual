@@ -10,6 +10,12 @@ export interface SceneSpec {
   label: string;
   /** Hue for the procedural fallback when the image is missing */
   hue: number;
+  /**
+   * True for bespoke set-piece art (door opening, bridge, Patronus): the
+   * picture already tells the moment, so room-state overlays must not
+   * stack on top of it.
+   */
+  setPiece?: boolean;
 }
 
 const scene = (file: string, label: string, hue: number): SceneSpec => ({
@@ -44,9 +50,9 @@ export const LOCATION_SCENES: Record<string, SceneSpec> = {
 
 export const MOMENT_SCENES = {
   title: scene('title', 'Ministry of Magic - Auror Examination', 120),
-  door_open: scene('door_open', 'The Iron Door Swings Open', 45),
-  bridge_built: scene('bridge_built', 'A Bridge Assembles Itself', 210),
-  patronus: scene('patronus', 'Expecto Patronum', 200),
+  door_open: { ...scene('door_open', 'The Iron Door Swings Open', 45), setPiece: true },
+  bridge_built: { ...scene('bridge_built', 'A Bridge Assembles Itself', 210), setPiece: true },
+  patronus: { ...scene('patronus', 'Expecto Patronum', 200), setPiece: true },
   dementor_encounter: scene('dementor_encounter', 'A Dementor Approaches', 210),
   duel: scene('duel', 'The Duel', 350),
   mirror: scene('mirror', 'The Mirror of Erised', 265),
