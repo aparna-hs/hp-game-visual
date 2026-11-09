@@ -4,28 +4,27 @@ A visual sibling of [hp-game](https://github.com/aparna-hs/harry-potter-text-adv
 Harry Potter Auror exam text adventure for people who read the books, appreciate Zork, and
 prefer typing to clicking.
 
-The text terminal is still the primary interface. A side panel adds:
+The text terminal is still the primary interface. Around it:
 
-- **Pixel-art scenes** for every location, with crossfades and state overlays
-  (a warm wand-glow in dark rooms while Lumos is lit, embers on the lake after the Inferi
-  burn, a lit doorway once the iron door opens, a cold desaturation while the Dementor
-  is engaged).
-- **Fog-of-war map** — rooms appear only after you have actually walked to them.
-  No `?` stubs, no hints, nothing spoiler-y. Edges appear only once both endpoints
-  have been visited.
-- **Spell VFX** — casting a spell flashes over the scene with a color matching the
-  spell's category (light = white, offense = red, defense = blue, healing = green,
-  utility = gold), plus damage pulses, healing shimmers and gold bursts when a
-  challenge completes.
-- **Status dashboard** — animated HP bar, score with delta pops, inventory, and the
-  nine challenge badges.
-- **Combat panel** — the Death Eater's vitality and duel round, plus threat
-  indicators for the Dementor and Inferi.
-- **Event feed** — "Entered: The Dark Corridor", "Challenge complete: Dementor (+10)",
-  "Wand lit (Lumos)", derived entirely from state diffs.
+- **Immersive full-screen moments** — entering a room reveals its pixel art
+  across the whole screen with the room's name, then fades. Spell casts flash
+  full-screen in the spell's color (light = white, offense = red, defense =
+  blue, healing = green, utility = gold) with a particle burst over the art.
+  Damage pulses red, healing shimmers green, challenge completions burst gold.
+  The Dementor encounter gets its own close-up moment. Nothing blocks play:
+  every layer is click-through and the terminal keeps focus.
+- **Fog-of-war map** — the heart of the side panel. Rooms appear only after
+  you have actually walked to them. No `?` stubs, no challenge list, no hints,
+  nothing spoiler-y. Edges appear only once both endpoints have been visited.
+- **Combat panel** — the Death Eater's vitality and duel round while you fight,
+  plus threat indicators for the Dementor and Inferi.
+- **Event feed** — "Entered: The Dark Corridor", "Challenge complete: Dementor
+  (+10)", "Wand lit (Lumos)", derived entirely from state diffs. Past events
+  only; it never previews what lies ahead.
 
-The game itself is untouched: same difficulty, same hints (still -2 points), same exact
-parser, no autocomplete. The visuals are a lens on the same examination.
+HP, score and inventory stay where they always were — in the terminal's status
+bar. The game itself is untouched: same difficulty, same hints (still -2
+points), same exact parser, no autocomplete.
 
 ## The engine is vendored, not rewritten
 
@@ -84,38 +83,41 @@ Or from the CLI: `npx vercel --prod` from this directory.
 
 ## Layout
 
-**Desktop:** terminal on the left; a ~380px visual panel on the right
-(scene → fog-of-war map → combat panel → status → event feed).
+**Desktop:** terminal on the left; a ~380px panel on the right with the
+fog-of-war map as its core, the combat panel (when a fight is active) and the
+event log. Scene art is not a permanent box — it appears as full-screen
+immersive moments driven by what you do.
 
-**Mobile (<768px):** terminal on top; the panel collapses into Scene / Map / Status
-tabs below.
+**Mobile (<768px):** terminal on top; the map and event log are always visible
+below (no tabs to dig through).
 
 ## Scenes
 
 `public/scenes/` holds generated 16-bit pixel art (21 location scenes plus title,
 Dementor encounter, duel, Mirror of Erised, victory and death moments). A unifying
 CSS treatment (scanlines + vignette + slight palette filter) keeps the art cohesive.
-State variants are code overlays, not extra images. If an image ever fails to load,
-a procedural SVG tint renders in its place instead of broken art.
+State variants (Lumos glow in dark rooms, embers on the lake after the Inferi burn,
+the open doorway, the Dementor's cold desaturation) are CSS overlays applied during
+the immersive moments. If an image ever fails to load, a procedural SVG tint renders
+in its place instead of broken art.
 
 ## Project structure
 
 ```
 src/
-├── App.tsx             # two-column layout + mobile tabs + phase screens
-├── engine/             # vendored from hp-game/src/game/ (unchanged)
-├── hooks/useGame.ts    # game state + command submission + phase flow
-├── lib/diff.ts         # GameState diffing → events + VFX triggers
-├── lib/mapLayout.ts    # hand-authored coordinates for all 21 rooms
-├── lib/sceneIndex.ts   # location → scene image + state variants
+├── App.tsx               # two-column layout + mobile stack
+├── engine/               # vendored from hp-game/src/game/ (unchanged)
+├── hooks/useGame.ts      # game state + command submission + phase flow
+├── lib/diff.ts           # GameState diffing → events + VFX triggers
+├── lib/mapLayout.ts      # hand-authored coordinates for all 21 rooms
+├── lib/sceneIndex.ts     # location → scene image + state variants
 └── components/
-    ├── Terminal.tsx    # ported from hp-game (phases, history, colors)
-    ├── SceneView.tsx   # location art, crossfade, overlays, VFX
-    ├── MapView.tsx     # SVG fog-of-war node graph
-    ├── StatusPanel.tsx # HP, score, inventory, 9 challenge badges
-    ├── EventFeed.tsx   # derived from diffs
-    ├── CombatPanel.tsx # enemy HP during the duel; threat indicators
-    └── EndScreen.tsx   # victory/death art + grade report card
+    ├── Terminal.tsx      # ported from hp-game (phases, history, colors)
+    ├── ImmersiveLayer.tsx# full-screen moments: room reveals, spells, damage
+    ├── MapView.tsx       # SVG fog-of-war node graph
+    ├── EventFeed.tsx     # derived from diffs (past events only)
+    ├── CombatPanel.tsx   # enemy HP during the duel; threat indicators
+    └── EndScreen.tsx     # victory/death art + grade report card
 ```
 
 ## Upstream
