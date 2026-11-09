@@ -140,6 +140,10 @@ export default function ImmersiveLayer({ state, vfx }: { state: GameState; vfx: 
   const [splash, setSplash] = useState<Splash | null>(null);
   const [closing, setClosing] = useState(false);
   const [failed, setFailed] = useState<Set<string>>(new Set());
+  // Touch devices have no Escape key; they dismiss by tap instead
+  const [coarsePointer] = useState(
+    () => typeof window !== 'undefined' && window.matchMedia('(pointer: coarse)').matches
+  );
 
   const keyRef = useRef(1);
   const prevLoc = useRef<string | null>(null);
@@ -240,17 +244,21 @@ export default function ImmersiveLayer({ state, vfx }: { state: GameState; vfx: 
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [state.challengeState.dementorDefeated, state.gamePhase]);
 
-  // A held splash dismisses on Escape / any key / any tap, and after a
-  // generous fallback timer so it can never linger forever.
+  // A held splash dismisses on Escape, any click/tap, and after a generous
+  // fallback timer so it can never linger forever. Other keys pass through
+  // untouched, so typing the next command never cuts a moment short.
   useEffect(() => {
     if (!splash || closing) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') dismissSplash();
+    };
     const onDismiss = () => dismissSplash();
     const fallback = window.setTimeout(onDismiss, HOLD_FALLBACK_MS);
-    document.addEventListener('keydown', onDismiss);
+    document.addEventListener('keydown', onKey);
     document.addEventListener('pointerdown', onDismiss);
     return () => {
       window.clearTimeout(fallback);
-      document.removeEventListener('keydown', onDismiss);
+      document.removeEventListener('keydown', onKey);
       document.removeEventListener('pointerdown', onDismiss);
     };
   }, [splash, closing, dismissSplash]);
@@ -292,7 +300,15 @@ export default function ImmersiveLayer({ state, vfx }: { state: GameState; vfx: 
   // Set-piece art tells its own story (e.g. darkness beyond the open door),
   // so room-state overlays must not stack on top of it.
   const setPieceRoot = splash?.spec.setPiece === true;
-  const rootSpec = splash ? splash.spec : spellFx.length > 0 ? resolveScene(state) : null;
+  // The duel art shows once when the chamber is entered; re-flashing it on
+  // every cast of the fight is repetitive, so spells there render just
+  // their particle burst instead of the full-screen art again.
+  const duelScene = playing && state.location === 'death_eater_chamber' && !cs.deathEaterDefeated;
+  const rootSpec = splash
+    ? splash.spec
+    : spellFx.length > 0 && !duelScene
+      ? resolveScene(state)
+      : null;
   const rootKey = splash ? `splash-${splash.key}` : `spell-${spellFx[0]?.id}`;
   const rootClass = isSplashRoot
     ? `immersive-root ${closing ? 'immersive-out' : 'immersive-in'}`
@@ -324,7 +340,9 @@ export default function ImmersiveLayer({ state, vfx }: { state: GameState; vfx: 
           <div className="scene-scanlines" />
           <div className="scene-vignette" />
           {splash && <div className="immersive-label">{splash.label}</div>}
-          {splash && !closing && <div className="immersive-hint">ESC TO CONTINUE</div>}
+          {splash && !closing && (
+            <div className="immersive-hint">{coarsePointer ? 'TAP TO CONTINUE' : 'ESC TO CONTINUE'}</div>
+          )}
         </div>
       )}
       {(effectFx.length > 0 || (!rootSpec && spellFx.length > 0)) && (

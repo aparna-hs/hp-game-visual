@@ -8,16 +8,22 @@ The text terminal is still the primary interface. Around it:
 
 - **Immersive full-screen moments** — entering a room reveals its pixel art
   across the whole screen with the room's name. Moments hold until you
-  acknowledge them (Esc, any key, or a click — with an "ESC TO CONTINUE"
-  hint and a 10s safety fallback), so you can actually take the art in.
+  acknowledge them (Esc or a click/tap — with an "ESC TO CONTINUE" hint,
+  "TAP TO CONTINUE" on touch screens, and a 10s safety fallback), so you
+  can actually take the art in; every other key passes through, so typing
+  the next command never cuts a moment short.
   Spell casts flash full-screen in the spell's color (light = white,
   offense = red, defense = blue, healing = green, utility = gold) with a
-  particle burst over the art; these brief flashes never block play.
-  Damage pulses red, healing shimmers green, challenge completions burst
-  gold, and a successful Accio summons the object flying into the
-  foreground. World-changing actions get dedicated set-piece art: the iron
-  door swinging open, the bridge assembling itself, the Patronus charge.
-  The Dementor encounter gets its own close-up moment.
+  particle burst over the art; these brief flashes never block play, and
+  during the duel the chamber art shows once on entry while each cast
+  renders just its burst. Damage pulses red, healing shimmers green,
+  challenge completions burst gold, and a successful Accio summons the
+  object flying into the foreground. World-changing actions get dedicated
+  set-piece art: the iron door swinging open onto the darkness beyond, the
+  bridge assembling itself, the Patronus charge. The Dementor encounter
+  gets its own close-up moment, and the duel art shows an anonymous
+  hooded candidate — the examinee is whoever you named, not any specific
+  character.
 - **Fog-of-war map** — the heart of the side panel. Rooms appear only after
   you have actually walked to them. No `?` stubs, no challenge list, no hints,
   nothing spoiler-y. Edges appear only once both endpoints have been visited.
